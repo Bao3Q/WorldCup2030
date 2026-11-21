@@ -24,15 +24,13 @@ Bảy feature đầu vào mô hình: `home_elo_pre`, `away_elo_pre`, `neutral`, 
 
 Huấn luyện bốn mô hình (Poisson Regression, Ridge, Random Forest, Extra Trees) để dự đoán số bàn của hai đội, rồi dựng ma trận xác suất tỉ số từ hai giá trị λ.
 
-Chỉ số đánh giá, theo thứ tự ưu tiên:
+Chỉ số đánh giá tập trung vào dự đoán số bàn:
 
-- **RPS** — chất lượng xác suất thắng/hoà/thua, càng thấp càng tốt.
-- **Đúng K/H/T** — tỉ lệ đoán đúng kết quả trận.
-- **Đúng tỉ số** — chỉ số tham khảo; trần thực tế chỉ khoảng 15%.
+- **MAE bàn** — sai số tuyệt đối trung bình của λ so với số bàn thực tế; càng thấp càng tốt.
+- **Đúng tỉ số** — tỉ lệ trận mà tỉ số có xác suất cao nhất khớp kết quả thật.
+- **Số tỉ số khác nhau** — chỉ số chẩn đoán để phát hiện mô hình bị kẹt ở một vài tỉ số.
 
-Notebook có thêm hai baseline (luôn đoán 1-1, luôn đoán đội nhà thắng) và cột "số tỉ số khác nhau" để phát hiện trường hợp mô hình chỉ dự đoán vài tỉ số cố định.
-
-Notebook kiểm định lại bằng walk-forward qua 12 giải: mỗi giải chỉ huấn luyện trên các trận trước ngày khai mạc. Kết quả WC 2026: Poisson RPS 0.1602 (66.3% đúng K/H/T), Ridge 0.1587 (66.3%), MNLogit 0.1566 (66.3%). Trên 614 trận walk-forward: MNLogit 0.1824, Poisson 0.1834, Ridge 0.1852.
+Notebook so sánh với hai baseline (luôn đoán 1-1 và luôn đoán 1-0), đồng thời backtest walk-forward trên 12 giải: mỗi giải chỉ được huấn luyện bằng dữ liệu trước ngày khai mạc. Trên 614 trận, Poisson đạt MAE 0.8646 và đúng tỉ số 14.17%; Ridge đạt MAE 0.8661 và đúng tỉ số 15.31%. Poisson được dùng mặc định cho mô phỏng vì mô hình hoá số bàn và sinh được tỉ số.
 
 ## Cấu trúc dự án
 
@@ -86,6 +84,5 @@ Chạy `wc.ipynb` hết các ô trước, sau đó mở và chạy `train.ipynb`
 ## Hướng phát triển
 
 - Thêm feature mới để vượt trần hiện tại: xG (expected goals), số ngày nghỉ, hoặc tỉ lệ cược của nhà cái. Đổi mô hình gần như không cải thiện thêm.
-- Đã thử thêm giá trị đội hình theo Transfermarkt: chỉ cải thiện ΔRPS khoảng 0.003, chưa bằng một phần tư sai số chuẩn của tập test, nên đã bỏ.
 - Dùng dự đoán số bàn để mô phỏng vòng bảng và vòng loại trực tiếp World Cup 2030.
 - Ước tính xác suất vô địch cho từng đội bằng mô phỏng Monte Carlo.
