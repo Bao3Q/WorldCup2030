@@ -32,6 +32,8 @@ Chỉ số đánh giá, theo thứ tự ưu tiên:
 
 Notebook có thêm hai baseline (luôn đoán 1-1, luôn đoán đội nhà thắng) và cột "số tỉ số khác nhau" để phát hiện trường hợp mô hình chỉ dự đoán vài tỉ số cố định.
 
+Notebook kiểm định lại bằng walk-forward qua 12 giải: mỗi giải chỉ huấn luyện trên các trận trước ngày khai mạc. Kết quả WC 2026: Poisson RPS 0.1602 (66.3% đúng K/H/T), Ridge 0.1587 (66.3%), MNLogit 0.1566 (66.3%). Trên 614 trận walk-forward: MNLogit 0.1824, Poisson 0.1834, Ridge 0.1852.
+
 ## Cấu trúc dự án
 
 ```text
@@ -83,6 +85,7 @@ Chạy `wc.ipynb` hết các ô trước, sau đó mở và chạy `train.ipynb`
 
 ## Hướng phát triển
 
-- Thêm feature mới để vượt trần hiện tại: xG (expected goals), giá trị đội hình, số ngày nghỉ, hoặc tỉ lệ cược của nhà cái. Đổi mô hình gần như không cải thiện thêm.
+- Thêm feature mới để vượt trần hiện tại: xG (expected goals), số ngày nghỉ, hoặc tỉ lệ cược của nhà cái. Đổi mô hình gần như không cải thiện thêm.
+- Đã thử thêm giá trị đội hình theo Transfermarkt: chỉ cải thiện ΔRPS khoảng 0.003, chưa bằng một phần tư sai số chuẩn của tập test, nên đã bỏ.
 - Dùng dự đoán số bàn để mô phỏng vòng bảng và vòng loại trực tiếp World Cup 2030.
 - Ước tính xác suất vô địch cho từng đội bằng mô phỏng Monte Carlo.
