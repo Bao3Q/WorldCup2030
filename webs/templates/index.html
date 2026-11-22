@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô Phỏng World Cup (Local Host)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+        .gradient-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
+        .tab-btn.active { border-bottom: 3px solid #38bdf8; color: #38bdf8; font-weight: 600; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                    <i class="fa-solid fa-trophy text-slate-950 text-xl font-bold"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-amber-400 via-rose-300 to-sky-400 bg-clip-text text-transparent">
+                        Hệ Thống Mô Phỏng World Cup
+                    </h1>
+                    <p class="text-xs text-slate-400">Machine Learning (Poisson Regression + Elo Rating + Monte Carlo)</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span> Port 3000
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 mt-6">
+        <!-- Control Bar -->
+        <div class="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/60 shadow-xl mb-6">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-3">
+                    <button id="btn-single-sim" onclick="runSingleSim()" class="px-5 py-2.5 rounded-xl font-semibold bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-lg shadow-sky-500/25 transition active:scale-95 flex items-center gap-2">
+                        <i class="fa-solid fa-play"></i> Mô Phỏng 1 Giải Đấu
+                    </button>
+                    <div class="flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 gap-2">
+                        <span class="text-xs text-slate-400 font-medium">Lượt Monte Carlo:</span>
+                        <input id="mc-runs" type="number" value="100" min="10" max="1000" step="10" class="w-20 bg-slate-800 text-center font-bold text-sky-400 rounded-lg py-1 text-sm border border-slate-700 focus:outline-none focus:border-sky-500">
+                        <button id="btn-mc-sim" onclick="runMonteCarlo()" class="px-4 py-1.5 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition active:scale-95 flex items-center gap-1.5">
+                            <i class="fa-solid fa-calculator"></i> Tính Xác Suất
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Champion Banner Placeholder -->
+                <div id="champion-badge" class="hidden items-center gap-3 bg-amber-500/10 border border-amber-500/30 px-4 py-2 rounded-xl">
+                    <i class="fa-solid fa-crown text-amber-400 text-xl"></i>
+                    <div>
+                        <div class="text-[10px] text-amber-400/80 font-bold uppercase tracking-wider">Đội Vô Địch</div>
+                        <div id="champion-name" class="text-base font-extrabold text-amber-300">Spain</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-slate-800 mb-6 gap-6 text-sm">
+            <button onclick="switchTab('knockout')" id="tab-knockout" class="tab-btn active pb-3 transition flex items-center gap-2">
+                <i class="fa-solid fa-sitemap"></i> Vòng Knock-out (Vòng 32 &rarr; Chung Kết)
+            </button>
+            <button onclick="switchTab('groups')" id="tab-groups" class="tab-btn text-slate-400 pb-3 transition flex items-center gap-2">
+                <i class="fa-solid fa-table-cells"></i> Vòng Bảng (12 Bảng)
+            </button>
+            <button onclick="switchTab('montecarlo')" id="tab-montecarlo" class="tab-btn text-slate-400 pb-3 transition flex items-center gap-2">
+                <i class="fa-solid fa-chart-pie"></i> Bảng Dự Đoán Monte Carlo
+            </button>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading" class="hidden text-center py-12">
+            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-sky-400 mb-3"></i>
+            <p class="text-slate-400 text-sm">Đang tính toán các trận đấu bằng mô hình Poisson & Elo...</p>
+        </div>
+
+        <!-- TAB CONTENT: KNOCKOUT -->
+        <div id="content-knockout" class="space-y-6">
+            <div id="knockout-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="col-span-full text-center text-slate-500 py-12">Nhấn "Mô Phỏng 1 Giải Đấu" để xem kết quả nhánh đấu.</div>
+            </div>
+        </div>
+
+        <!-- TAB CONTENT: GROUPS -->
+        <div id="content-groups" class="hidden space-y-6">
+            <div id="groups-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div class="col-span-full text-center text-slate-500 py-12">Chưa có dữ liệu vòng bảng.</div>
+            </div>
+        </div>
+
+        <!-- TAB CONTENT: MONTE CARLO -->
+        <div id="content-montecarlo" class="hidden">
+            <div class="rounded-2xl bg-slate-800/80 border border-slate-700/60 overflow-hidden shadow-xl">
+                <div class="p-4 border-b border-slate-700/80 flex justify-between items-center bg-slate-800">
+                    <h3 class="font-bold text-slate-200 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-amber-400"></i> Xác Suất Tiến Vào Các Vòng (%)
+                    </h3>
+                    <span id="mc-info-label" class="text-xs text-slate-400">Mô phỏng Monte Carlo</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-900/70 text-slate-400 uppercase font-bold border-b border-slate-700">
+                            <tr>
+                                <th class="p-3">Hạng</th>
+                                <th class="p-3">Đội Tuyển</th>
+                                <th class="p-3 text-right">R32 (%)</th>
+                                <th class="p-3 text-right">R16 (%)</th>
+                                <th class="p-3 text-right">Tứ Kết (%)</th>
+                                <th class="p-3 text-right">Bán Kết (%)</th>
+                                <th class="p-3 text-right">Chung Kết (%)</th>
+                                <th class="p-3 text-right text-amber-400 font-extrabold">Vô Địch (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mc-tbody" class="divide-y divide-slate-700/50">
+                            <tr>
+                                <td colspan="8" class="p-8 text-center text-slate-500">Nhập số lượt và bấm "Tính Xác Suất" để chạy Monte Carlo.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function switchTab(tab) {
+            ['knockout', 'groups', 'montecarlo'].forEach(t => {
+                document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+                document.getElementById('tab-' + t).classList.toggle('text-slate-400', t !== tab);
+                document.getElementById('content-' + t).classList.toggle('hidden', t !== tab);
+            });
+        }
+
+        async function runSingleSim() {
+            showLoading(true);
+            try {
+                const res = await fetch('/api/simulate');
+                const data = await res.json();
+                renderSingleSim(data);
+                switchTab('knockout');
+            } catch (err) {
+                alert('Lỗi kết nối máy chủ mô phỏng: ' + err);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function runMonteCarlo() {
+            const runs = document.getElementById('mc-runs').value || 100;
+            showLoading(true);
+            try {
+                const res = await fetch('/api/monte_carlo?runs=' + runs);
+                const data = await res.json();
+                renderMonteCarlo(data, runs);
+                switchTab('montecarlo');
+            } catch (err) {
+                alert('Lỗi tính toán Monte Carlo: ' + err);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('hidden', !show);
+        }
+
+        function renderSingleSim(data) {
+            document.getElementById('champion-badge').classList.remove('hidden');
+            document.getElementById('champion-badge').classList.add('flex');
+            document.getElementById('champion-name').innerText = data.champion;
+
+            // Render Groups
+            const gContainer = document.getElementById('groups-container');
+            gContainer.innerHTML = '';
+            for (const [gId, val] of Object.entries(data.standings)) {
+                let rowsHtml = '';
+                val.ranked.forEach((team, idx) => {
+                    const st = val.stats[team];
+                    const isTop2 = idx < 2;
+                    const isTop8Third = data.top8_third.includes(team);
+                    const tagClass = isTop2 ? 'bg-sky-500/20 text-sky-400' : (isTop8Third ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400');
+                    rowsHtml += `
+                        <tr class="border-t border-slate-700/40 text-[11px] ${isTop2 || isTop8Third ? 'font-semibold' : ''}">
+                            <td class="py-1.5 px-2">${idx + 1}</td>
+                            <td class="py-1.5 px-2 truncate max-w-[100px] ${tagClass}">${team}</td>
+                            <td class="py-1.5 px-2 text-center text-slate-300 font-bold">${st.points}</td>
+                            <td class="py-1.5 px-2 text-center text-slate-400">${st.gf - st.ga}</td>
+                            <td class="py-1.5 px-2 text-center text-slate-400">${st.gf}</td>
+                        </tr>
+                    `;
+                });
+
+                gContainer.innerHTML += `
+                    <div class="rounded-xl bg-slate-800/90 border border-slate-700 p-3 shadow-md">
+                        <div class="font-bold text-xs text-sky-400 mb-2 flex items-center justify-between">
+                            <span>Bảng ${gId}</span>
+                            <span class="text-[10px] text-slate-500">6 trận</span>
+                        </div>
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-[10px] text-slate-500 uppercase">
+                                    <th class="py-1 px-2 text-left">#</th>
+                                    <th class="py-1 px-2 text-left">Đội</th>
+                                    <th class="py-1 px-2 text-center">Đ</th>
+                                    <th class="py-1 px-2 text-center">HS</th>
+                                    <th class="py-1 px-2 text-center">BT</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rowsHtml}</tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            // Render Knockout
+            const kContainer = document.getElementById('knockout-container');
+            kContainer.innerHTML = '';
+
+            const roundTitles = {
+                'Final': 'CHUNG KẾT',
+                '3rd': 'TRANH HẠNG BA',
+                'SF': 'BÁN KẾT (4 Đội)',
+                'QF': 'TỨ KẾT (8 Đội)',
+                'R16': 'VÒNG 1/16 (16 Đội)',
+                'R32': 'VÒNG 1/32 (32 Đội)'
+            };
+
+            const rounds = ['Final', '3rd', 'SF', 'QF', 'R16', 'R32'];
+            rounds.forEach(r => {
+                const matches = data.knockout_matches.filter(m => m.round === r);
+                if (matches.length === 0) return;
+
+                let matchesHtml = '';
+                matches.forEach(m => {
+                    const isHomeWinner = m.winner === m.home_team;
+                    const isAwayWinner = m.winner === m.away_team;
+                    const note = m.penalties ? '<span class="text-[10px] text-amber-400 ml-1">(Pen)</span>' : (m.extra_time ? '<span class="text-[10px] text-sky-400 ml-1">(ET)</span>' : '');
+
+                    matchesHtml += `
+                        <div class="p-2.5 rounded-lg bg-slate-900/80 border border-slate-700/60 mb-2 flex items-center justify-between text-xs">
+                            <span class="text-[10px] text-slate-500 font-mono w-10">${m.match_id}</span>
+                            <div class="flex-1 px-2 flex justify-between items-center">
+                                <span class="${isHomeWinner ? 'font-bold text-emerald-400' : 'text-slate-300'} truncate text-right flex-1">${m.home_team}</span>
+                                <span class="mx-2 px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-extrabold whitespace-nowrap">${m.home_goals} - ${m.away_goals} ${note}</span>
+                                <span class="${isAwayWinner ? 'font-bold text-emerald-400' : 'text-slate-300'} truncate text-left flex-1">${m.away_team}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                kContainer.innerHTML += `
+                    <div class="rounded-xl bg-slate-800/80 border border-slate-700 p-4 shadow-lg flex flex-col justify-start">
+                        <div class="font-extrabold text-xs uppercase tracking-wider text-sky-400 mb-3 flex items-center gap-2 border-b border-slate-700/60 pb-2">
+                            <i class="fa-regular fa-futbol"></i> ${roundTitles[r]}
+                        </div>
+                        <div class="space-y-1">${matchesHtml}</div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderMonteCarlo(summary, runs) {
+            document.getElementById('mc-info-label').innerText = `Kết quả trên ${runs} kịch bản Monte Carlo`;
+            const tbody = document.getElementById('mc-tbody');
+            tbody.innerHTML = '';
+
+            summary.forEach((row, idx) => {
+                const isChampionProb = row.Champion > 5;
+                const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : idx + 1));
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-700/30 transition ${isChampionProb ? 'bg-amber-500/5' : ''}">
+                        <td class="p-3 font-bold text-slate-400">${medal}</td>
+                        <td class="p-3 font-semibold text-slate-100">${row.team}</td>
+                        <td class="p-3 text-right text-slate-400">${row.R32}%</td>
+                        <td class="p-3 text-right text-slate-400">${row.R16}%</td>
+                        <td class="p-3 text-right text-slate-400">${row.QF}%</td>
+                        <td class="p-3 text-right text-slate-300">${row.SF}%</td>
+                        <td class="p-3 text-right text-slate-300 font-bold">${row.Final}%</td>
+                        <td class="p-3 text-right text-amber-400 font-extrabold text-sm">${row.Champion}%</td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            runSingleSim();
+        });
+    </script>
+</body>
+</html>
