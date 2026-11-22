@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  worldcup-simulation:
+    build:
+      context: ..
+      dockerfile: webs/Dockerfile
+    container_name: worldcup2030_web
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
