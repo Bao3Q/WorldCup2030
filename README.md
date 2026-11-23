@@ -80,9 +80,3 @@ Chạy `wc.ipynb` hết các ô trước, sau đó mở và chạy `train.ipynb`
 - `loc/wc_2026_da_loc.csv`: 104 trận World Cup 2026 với đặc trưng phong độ và Elo trước từng trận.
 - `loc/matches_truoc_va_sau_wc_2026.csv`: lịch sử kết hợp với dữ liệu World Cup 2026, đầy đủ đặc trưng.
 - `loc/matches_truoc_wc_2026_elo_features.csv`: lịch sử trận đấu kèm đặc trưng Elo trước trận.
-
-## Hướng phát triển
-
-- Thêm feature mới để vượt trần hiện tại: xG (expected goals), số ngày nghỉ, hoặc tỉ lệ cược của nhà cái. Đổi mô hình gần như không cải thiện thêm.
-- Dùng dự đoán số bàn để mô phỏng vòng bảng và vòng loại trực tiếp World Cup 2030.
-- Ước tính xác suất vô địch cho từng đội bằng mô phỏng Monte Carlo.

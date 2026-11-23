@@ -35,9 +35,27 @@ class WCRequestHandler(http.server.BaseHTTPRequestHandler):
             swap_in = query.get('swap_in', [''])[0].strip() or None
             swap_out = query.get('swap_out', [''])[0].strip() or None
             try:
-                result = simulation_core.simulate_full_tournament(
-                    seed=None, swap_in=swap_in, swap_out=swap_out
-                )
+                runs = int(query.get('runs', ['1'])[0] or 1)
+            except ValueError:
+                runs = 1
+            runs = min(max(runs, 1), 1000)
+            try:
+                if runs > 1:
+                    # Chạy `runs` giải: trả về một giải mẫu để vẽ nhánh đấu
+                    # kèm bảng xác suất tính trên đúng số lần đó.
+                    summary, sample = simulation_core.run_monte_carlo(
+                        runs=runs,
+                        swap_in=swap_in,
+                        swap_out=swap_out,
+                        keep_sample=True,
+                    )
+                    result = dict(sample)
+                    result['summary'] = summary
+                    result['runs'] = runs
+                else:
+                    result = simulation_core.simulate_full_tournament(
+                        seed=None, swap_in=swap_in, swap_out=swap_out
+                    )
                 status = 200
             except ValueError as exc:
                 status = 400

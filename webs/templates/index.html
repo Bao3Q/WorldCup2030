@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="dark">
-    <meta name="description" content="Mô phỏng World Cup 2026 bằng mô hình Poisson + Elo: một lần chạy cho ra cả giải, nhiều lần chạy cho ra xác suất.">
-    <title>Mô phỏng World Cup 2026 — Poisson &amp; Elo</title>
+    <meta name="description" content="Mô phỏng World Cup 2030 bằng mô hình Poisson + Elo: một lần chạy cho ra cả giải, nhiều lần chạy cho ra xác suất.">
+    <title>Mô phỏng World Cup 2030 — Poisson &amp; Elo</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2317160f'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-style='italic' font-size='17' fill='%23f4eee2'%3E26%3C/text%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -932,7 +932,7 @@
             </div>
             <div class="masthead-grid">
                 <div>
-                    <h1>Mô phỏng<br>World Cup <em>2026</em></h1>
+                    <h1>Mô phỏng<br>World Cup <em>2030</em></h1>
                     <p class="deck">
                         Mỗi lần bấm là một giải đấu khác: 48 đội, 104 trận, từ vòng bảng tới chung kết.
                         Số bàn thắng do mô hình Poisson sinh ra, sức mạnh đội lấy từ Elo — nên kết quả
@@ -941,7 +941,7 @@
                 </div>
                 <aside class="marginalia">
                     <h2>Cách đọc trang này</h2>
-                    <p><b>Nhánh đấu</b> là kết quả của một lần chạy. <b>Xác suất</b> là tần suất sau nhiều lần chạy. <b>Đối đầu</b> xem một trận riêng lẻ, không cần chạy cả giải.</p>
+                    <p><b>Nhánh đấu</b> là một kịch bản mẫu trong N lần chạy ở ô “Số lần chạy”. <b>Xác suất</b> là tần suất trên đúng N lần đó. <b>Đối đầu</b> xem một trận riêng lẻ, không cần chạy cả giải.</p>
                     <p class="marginalia-foot">Elo tính tuần tự từ năm 1930 nên mỗi trận đều cập nhật lại sức mạnh hai đội. Hạt giống ngẫu nhiên đổi mỗi lần chạy, vì vậy đừng ngạc nhiên nếu nhà vô địch đổi theo.</p>
                 </aside>
             </div>
@@ -955,12 +955,12 @@
                 </div>
 
                 <div class="controls-actions">
-                    <button class="btn btn-solid" onclick="runSingleSim()">Chạy một giải</button>
+                    <button class="btn btn-solid" onclick="runSingleSim()">Chạy giải</button>
 
                     <div class="field">
                         <label for="mc-runs">Số lần chạy</label>
                         <div class="runs">
-                            <input id="mc-runs" type="number" value="100" min="10" max="1000" step="10">
+                            <input id="mc-runs" type="number" value="100" min="1" max="1000" step="1">
                             <button class="btn btn-ghost" onclick="runMonteCarlo()">Tính xác suất</button>
                         </div>
                     </div>
@@ -1006,7 +1006,7 @@
             <div id="content-knockout" class="view">
                 <div id="team-summary" class="hidden"></div>
                 <div id="knockout-container" class="bracket">
-                    <p class="empty">Chưa có kết quả. Bấm “Chạy một giải” để bắt đầu.</p>
+                    <p class="empty">Chưa có kết quả. Bấm “Chạy giải” để bắt đầu.</p>
                 </div>
             </div>
 
@@ -1023,7 +1023,7 @@
                         <p class="draw-deck">
                             48 đội chia thành bốn nhóm hạt giống theo Elo trước giải. Mỗi bảng nhận đúng một đội
                             từ mỗi nhóm, và mỗi liên đoàn chỉ được một suất trong cùng bảng — riêng UEFA được hai.
-                            Mexico, Canada và Mỹ đã cố định ở A1, B1, D1.
+                            Ba đội chủ nhà — Tây Ban Nha, Bồ Đào Nha, Morocco — đã cố định ở A1, B1, D1.
                         </p>
                     </div>
                     <div class="draw-actions">
@@ -1213,15 +1213,22 @@
         async function runSingleSim() {
             const swapQuery = buildSwapQuery();
             if (swapQuery === null) return;
+            const runsInput = parseInt(document.getElementById('mc-runs').value || '1', 10);
+            const runs = Math.min(Math.max(Number.isFinite(runsInput) ? runsInput : 1, 1), 1000);
             showLoading(true);
             try {
-                const res = await fetch('/api/simulate' + (swapQuery ? '?' + swapQuery : ''));
+                const params = new URLSearchParams({ runs: String(runs) });
+                if (swapQuery) {
+                    new URLSearchParams(swapQuery).forEach((value, key) => params.set(key, value));
+                }
+                const res = await fetch('/api/simulate?' + params);
                 const data = await res.json();
                 if (!res.ok) {
                     alert(data.error || 'Không mô phỏng được giải đấu.');
                     return;
                 }
                 renderSingleSim(data);
+                if (data.summary) renderMonteCarlo(data.summary, data.runs);
                 switchTab('knockout');
             } catch (err) {
                 alert('Lỗi kết nối máy chủ mô phỏng: ' + err);
@@ -1457,8 +1464,17 @@
             } else {
                 heroFinal.innerHTML = '';
             }
-            document.getElementById('run-stamp').textContent =
-                'Sinh lúc ' + new Date().toLocaleTimeString('vi-VN');
+            // Nhánh đấu chỉ là một kịch bản mẫu; nếu vừa chạy N lần thì ghi
+            // kèm xác suất vô địch của chính đội đang hiện, tránh hiểu nhầm
+            // rằng đây là kết quả tất yếu.
+            const stampTime = 'sinh lúc ' + new Date().toLocaleTimeString('vi-VN');
+            let stamp = stampTime;
+            if (data.summary) {
+                const row = data.summary.find(r => r.team === data.champion);
+                const p = row ? row.Champion : 0;
+                stamp = `Mẫu 1 trong ${data.runs} lần chạy · ${data.champion} vô địch ${p}% · ${stampTime}`;
+            }
+            document.getElementById('run-stamp').textContent = stamp;
 
             const gContainer = document.getElementById('groups-container');
             gContainer.innerHTML = '';

@@ -109,10 +109,13 @@ def load_confederations():
 #    Pot 1 gồm 3 chủ nhà cộng 9 đội Elo cao nhất còn lại.
 # 2. Mỗi bảng nhận đúng một đội từ mỗi pot.
 # 3. Một bảng không được có hai đội cùng liên đoàn, trừ UEFA (tối đa 2).
-# 4. Chủ nhà cố định vị trí: Mexico A1, Canada B1, Mỹ D1.
+# 4. Chủ nhà cố định vị trí: Tây Ban Nha A1, Bồ Đào Nha B1, Morocco D1.
+#    World Cup 2030 do Tây Ban Nha – Bồ Đào Nha – Morocco đăng cai; FIFA chưa
+#    công bố vị trí bảng cụ thể nên giữ đúng quy ước ba chủ nhà ở A1/B1/D1
+#    như World Cup 2026.
 DRAW_GROUPS = list('ABCDEFGHIJKL')
-HOST_TEAMS = ('Mexico', 'Canada', 'United States')
-HOST_SLOTS = {'A': 'Mexico', 'B': 'Canada', 'D': 'United States'}
+HOST_TEAMS = ('Spain', 'Portugal', 'Morocco')
+HOST_SLOTS = {'A': 'Spain', 'B': 'Portugal', 'D': 'Morocco'}
 CONFEDERATION_LIMITS = {'UEFA': 2}
 DEFAULT_CONFEDERATION_LIMIT = 1
 
@@ -629,8 +632,9 @@ def update_state(home_team, away_team, home_goals, away_goals, states, actual_ho
     away['ga'] = away['ga'][1:] + [float(home_goals)]
 
 def play_match(home_team, away_team, states, match_id, round_name, rng):
-    host_teams = {'Mexico', 'United States', 'Canada'}
-    neutral = not (home_team in host_teams)
+    # World Cup 2030: Tây Ban Nha, Bồ Đào Nha, Morocco là chủ nhà. Đội chủ nhà
+    # ở suất "nhà" của cặp đấu được tính là đá sân nhà (neutral=False).
+    neutral = home_team not in HOST_TEAMS
     lh, la = predict_lambda(home_team, away_team, states, neutral=neutral)
     if OVERDISPERSION_SIGMA:
         shock = math.exp(rng.normal(0.0, OVERDISPERSION_SIGMA))
@@ -722,10 +726,13 @@ def _rank_group(teams, stats, records):
                     h2h_points += 3 if ag > hg else (1 if ag == hg else 0)
             h2h[team] = (h2h_points, gf - ga, gf)
 
+        # Thứ tự tie-break của FIFA World Cup: điểm → hiệu số bàn (toàn bảng)
+        # → bàn thắng (toàn bảng) → điểm đối đầu → hiệu số đối đầu → bàn thắng
+        # đối đầu. Fair-play và bốc thăm không mô phỏng được nên bỏ qua.
         tied.sort(key=lambda team: (
-            h2h[team],
             stats[team]['gf'] - stats[team]['ga'],
             stats[team]['gf'],
+            h2h[team],
         ), reverse=True)
         ranked.extend(tied)
     return ranked
@@ -909,10 +916,18 @@ def simulate_full_tournament(seed=None, swap_in=None, swap_out=None):
         'draw_seed': current_draw_seed(),
     }
 
-def run_monte_carlo(runs=100, swap_in=None, swap_out=None):
+def run_monte_carlo(runs=100, swap_in=None, swap_out=None, keep_sample=False):
+    """Chạy `runs` giải, trả về tần suất từng vòng.
+
+    `keep_sample=True` thì trả thêm giải đầu tiên, để giao diện vừa vẽ được
+    một nhánh đấu mẫu vừa hiện xác suất tính trên cùng `runs` lần đó.
+    """
     stage_counts = defaultdict(lambda: defaultdict(int))
+    sample = None
     for i in range(runs):
         res = simulate_full_tournament(seed=None, swap_in=swap_in, swap_out=swap_out)
+        if keep_sample and sample is None:
+            sample = res
         for g_id, data in res['standings'].items():
             for t in data['ranked'][:2]:
                 stage_counts[t]['R32'] += 1
@@ -945,4 +960,6 @@ def run_monte_carlo(runs=100, swap_in=None, swap_out=None):
             'Champion': round(counts['Champion'] / runs * 100, 1),
         })
     summary.sort(key=lambda x: (x['Champion'], x['Final'], x['SF'], x['QF']), reverse=True)
+    if keep_sample:
+        return summary, sample
     return summary
