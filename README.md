@@ -59,10 +59,10 @@ WorldCup2030/
 
 ## Cài đặt và chạy
 
-Cần Python 3, Jupyter Notebook, `pandas`, `numpy`, `scipy` và `scikit-learn`:
+Cần Python 3, Jupyter Notebook, `pandas`, `numpy`, `scipy`, `scikit-learn` và `matplotlib`.
 
 ```powershell
-python -m pip install pandas numpy scipy scikit-learn notebook
+python -m pip install pandas numpy scipy scikit-learn matplotlib notebook
 ```
 
 Mở notebook với thư mục làm việc là `notebooks`, vì các đường dẫn dữ liệu trong notebook được viết tương đối từ thư mục đó:
